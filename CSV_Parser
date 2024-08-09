@@ -1,0 +1,66 @@
+function onOpen() {
+  var ui = SpreadsheetApp.getUi();
+  // Create a custom menu
+  ui.createMenu('Custom Scripts')
+    .addItem('Parse CSV Column', 'showPrompt')
+    .addToUi();
+}
+
+function showPrompt() {
+  const ui = SpreadsheetApp.getUi();
+
+  const columnResponse = ui.prompt('Enter the column name to parse:');
+  if (columnResponse.getSelectedButton() !== ui.Button.OK) {
+    ui.alert('No column name entered. Exiting.');
+    return;
+  }
+  const columnName = columnResponse.getResponseText();
+  Logger.log('Column name: ' + columnName);
+
+  const delimiterResponse = ui.prompt('Enter the delimiter used in the column:');
+  if (delimiterResponse.getSelectedButton() !== ui.Button.OK) {
+    ui.alert('No delimiter entered. Exiting.');
+    return;
+  }
+  const delimiter = delimiterResponse.getResponseText();
+  Logger.log('Delimiter: ' + delimiter);
+
+  const outputResponse = ui.prompt('Enter the output file name (for Google Docs):');
+  if (outputResponse.getSelectedButton() !== ui.Button.OK) {
+    ui.alert('No output file name entered. Exiting.');
+    return;
+  }
+  const outputFileName = outputResponse.getResponseText();
+  Logger.log('Output file name: ' + outputFileName);
+
+  parseCSVColumn(columnName, delimiter, outputFileName);
+}
+
+function parseCSVColumn(columnName, delimiter, outputFileName) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  
+  const data = sheet.getDataRange().getValues();
+  
+  const headers = data[0];
+  const columnIndex = headers.indexOf(columnName);
+  if (columnIndex === -1) {
+    Logger.log(`The sheet does not contain the required column: ${columnName}`);
+    SpreadsheetApp.getUi().alert(`The sheet does not contain the required column: ${columnName}`);
+    return;
+  }
+
+  const doc = DocumentApp.create(outputFileName);
+  const body = doc.getBody();
+
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    const objects = row[columnIndex].split(delimiter);
+    body.appendParagraph(`Row ${i}:`);
+    for (let j = 0; j < objects.length; j++) {
+      body.appendListItem(objects[j]);
+    }
+  }
+
+  Logger.log(`Data has been written to ${outputFileName}`);
+  SpreadsheetApp.getUi().alert(`Data has been written to ${outputFileName}`);
+}
